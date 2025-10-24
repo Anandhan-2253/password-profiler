@@ -10,7 +10,7 @@
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.6+-blue.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
+<!--![License](https://img.shields.io/badge/License-MIT-green.svg)-->
 ![Platform](https://img.shields.io/badge/Platform-Linux%20|%20Windows%20|%20macOS-lightgrey.svg)
 
 </div>
@@ -87,5 +87,5 @@ git clone https://github.com/Anandhan-2253/password-profiler.git
 # Navigate to project directory
 cd password-profiler
 
-# No additional dependencies required!
-# Uses Python standard library only
+# Run the file
+python main.py
