@@ -1,0 +1,19 @@
+Name 
+dob y/n
+please enter dob
+father 
+dob y/n
+please enter dob
+mother
+dob y/n
+please enter dob
+
+ph y/n
+enter ph:
+
+No of count : maybe its 100, 200, 300(suppose 100 words in a list)
+add special characters : y/n
+file name y/n
+enter file name:
+
+prepare a passwordprofiler using these arguments using python and also add a intresting banner named it as PASSWORD PROFILE (or any other catchy names) Developed by R00tghost
