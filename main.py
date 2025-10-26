@@ -190,7 +190,7 @@ class PasswordProfiler:
         return personal_data
 
     def generate_password_variations(self, base_words, numbers, special_chars=False):
-        """Generate password variations from base words and numbers"""
+        """Generate password variations from base words and numbers (8-10 chars only)"""
         variations = set()
         
         # Common substitutions
@@ -208,66 +208,81 @@ class PasswordProfiler:
         # Combine all base elements
         all_elements = base_words + numbers
         
-        # Generate combinations
+        # Generate combinations with length restriction
         for i in range(len(all_elements)):
             for j in range(len(all_elements)):
                 if i != j:
                     # Basic combinations
-                    variations.add(all_elements[i] + all_elements[j])
-                    variations.add(all_elements[i] + "_" + all_elements[j])
-                    variations.add(all_elements[i] + "." + all_elements[j])
-                    variations.add(all_elements[i] + "-" + all_elements[j])
-                    variations.add(all_elements[i] + all_elements[j] + "123")
-                    variations.add(all_elements[i] + all_elements[j] + "1234")
+                    combos = [
+                        all_elements[i] + all_elements[j],
+                        all_elements[i] + "_" + all_elements[j],
+                        all_elements[i] + "." + all_elements[j],
+                        all_elements[i] + "-" + all_elements[j],
+                        all_elements[i].capitalize() + all_elements[j],
+                        all_elements[i] + all_elements[j].capitalize(),
+                        all_elements[i].capitalize() + all_elements[j].capitalize(),
+                        all_elements[j] + all_elements[i],
+                        all_elements[j].capitalize() + all_elements[i]
+                    ]
                     
-                    # With capitalization
-                    variations.add(all_elements[i].capitalize() + all_elements[j])
-                    variations.add(all_elements[i] + all_elements[j].capitalize())
-                    variations.add(all_elements[i].capitalize() + all_elements[j].capitalize())
-                    
-                    # Reverse combinations
-                    variations.add(all_elements[j] + all_elements[i])
-                    variations.add(all_elements[j].capitalize() + all_elements[i])
+                    # Filter combinations by length (8-10 characters)
+                    for combo in combos:
+                        if 8 <= len(combo) <= 10:
+                            variations.add(combo)
         
-        # Add single elements with common suffixes
-        common_suffixes = ['123', '1234', '12345', '1', '12', '!', '@', '#', '007', '100']
+        # Add single elements with common suffixes (length restricted)
+        common_suffixes = ['123', '1234', '1', '12', '!', '@', '#', '007', '100', '99', '88']
         for element in all_elements:
             for suffix in common_suffixes:
-                variations.add(element + suffix)
-                variations.add(element.capitalize() + suffix)
+                combo1 = element + suffix
+                combo2 = element.capitalize() + suffix
+                
+                if 8 <= len(combo1) <= 10:
+                    variations.add(combo1)
+                if 8 <= len(combo2) <= 10:
+                    variations.add(combo2)
         
-        # Add special character variations if requested
+        # Add special character variations if requested (with length restriction)
         if special_chars:
             special_variations = set()
-            for var in variations:
-                # Add special characters at beginning/end
-                special_variations.add("!" + var)
-                special_variations.add("@" + var)
-                special_variations.add("#" + var)
-                special_variations.add("$" + var)
-                special_variations.add(var + "!")
-                special_variations.add(var + "@")
-                special_variations.add(var + "#")
-                special_variations.add(var + "$")
+            special_prefixes = ['!', '@', '#', '$']
+            special_suffixes = ['!', '@', '#', '$']
+            
+            # Add special characters to existing variations
+            for var in list(variations):
+                for prefix in special_prefixes:
+                    new_var = prefix + var
+                    if 8 <= len(new_var) <= 10:
+                        special_variations.add(new_var)
                 
-                # Apply character substitutions
+                for suffix in special_suffixes:
+                    new_var = var + suffix
+                    if 8 <= len(new_var) <= 10:
+                        special_variations.add(new_var)
+            
+            # Apply character substitutions with length check
+            for var in list(variations):
                 for char, replacements in substitutions.items():
                     if char in var.lower():
                         for replacement in replacements:
                             modified = var.replace(char, replacement)
-                            special_variations.add(modified)
+                            if 8 <= len(modified) <= 10:
+                                special_variations.add(modified)
+                            
                             # Also try capitalized version
                             modified_cap = var.replace(char.capitalize(), replacement)
-                            if modified_cap != var:
+                            if modified_cap != var and 8 <= len(modified_cap) <= 10:
                                 special_variations.add(modified_cap)
             
             variations.update(special_variations)
         
-        return list(variations)
+        # Final length validation
+        valid_variations = [pwd for pwd in variations if 8 <= len(pwd) <= 10]
+        return valid_variations
 
     def generate_passwords(self, personal_data, count, special_chars):
-        """Generate passwords based on personal data"""
-        print(f"\nGenerating {count} passwords...")
+        """Generate passwords based on personal data (8-10 chars only)"""
+        print(f"\nGenerating {count} passwords (8-10 characters)...")
         
         # Prepare base words and numbers
         base_words = []
@@ -278,11 +293,12 @@ class PasswordProfiler:
             base_words.append(personal_data['full_name'])
             name_parts = personal_data['full_name'].split()
             base_words.extend(name_parts)
-            # Add initials
+            # Add initials (only if they help create valid lengths)
             if len(name_parts) > 1:
                 initials = ''.join([part[0] for part in name_parts])
-                base_words.append(initials)
-                base_words.append(initials.lower())
+                if 2 <= len(initials) <= 6:  # Reasonable length for combinations
+                    base_words.append(initials)
+                    base_words.append(initials.lower())
         
         if personal_data['father']:
             base_words.append(personal_data['father'])
@@ -302,34 +318,42 @@ class PasswordProfiler:
         # Add phone number parts
         numbers.extend(personal_data['phone'])
         
-        # Remove duplicates and empty strings
-        base_words = list(set([w for w in base_words if w]))
-        numbers = list(set([n for n in numbers if n]))
+        # Remove duplicates and empty strings, and filter elements that are too long
+        base_words = list(set([w for w in base_words if w and len(w) <= 8]))
+        numbers = list(set([n for n in numbers if n and len(n) <= 8]))
         
         print(f"Base words: {len(base_words)}, Numbers: {len(numbers)}")
         
         # Generate password variations
         passwords = self.generate_password_variations(base_words, numbers, special_chars)
         
-        # If we need more passwords, add some random combinations
+        # If we need more passwords, add some random combinations (8-10 chars)
         if len(passwords) < count:
             additional_needed = count - len(passwords)
-            print(f"Generating {additional_needed} additional random passwords...")
+            print(f"Generating {additional_needed} additional random passwords (8-10 chars)...")
             passwords.extend(self.generate_random_passwords(additional_needed, special_chars))
         
         # Ensure we have exactly the requested number and shuffle
         random.shuffle(passwords)
-        return passwords[:count]
+        final_passwords = passwords[:count]
+        
+        # Final validation - ensure all passwords are 8-10 characters
+        validated_passwords = [pwd for pwd in final_passwords if 8 <= len(pwd) <= 10]
+        
+        if len(validated_passwords) < count:
+            print(f"Warning: Only generated {len(validated_passwords)} valid passwords (8-10 chars)")
+        
+        return validated_passwords
 
     def generate_random_passwords(self, count, special_chars):
-        """Generate additional random passwords"""
+        """Generate additional random passwords (8-10 characters only)"""
         random_passwords = []
         characters = string.ascii_letters + string.digits
         if special_chars:
             characters += "!@#$%&*"
         
         for _ in range(count):
-            length = random.randint(8, 15)
+            length = random.randint(8, 10)  # Only 8, 9, or 10 characters
             password = ''.join(random.choice(characters) for _ in range(length))
             random_passwords.append(password)
         
@@ -345,6 +369,7 @@ class PasswordProfiler:
             
             print(f"✓ Passwords saved to: {filename}")
             print(f"✓ Total passwords generated: {len(passwords)}")
+            print(f"✓ Password length: 8-10 characters")
         except Exception as e:
             print(f"✗ Error saving to file: {e}")
 
@@ -378,14 +403,19 @@ class PasswordProfiler:
             
             self.save_to_file(passwords, filename)
             
-            # Display sample of passwords
+            # Display sample of passwords with lengths
             print("\n" + "="*60)
             print("SAMPLE OF GENERATED PASSWORDS (first 10)")
             print("="*60)
             for i, password in enumerate(passwords[:10], 1):
-                print(f"{password}")
+                print(f"{password} (length: {len(password)})")
             
-            print(f"\n... and {len(passwords) - 10} more passwords in {filename}")
+            remaining = len(passwords) - 10
+            if remaining > 0:
+                print(f"\n... and {remaining} more passwords in {filename}")
+            else:
+                print(f"\nAll {len(passwords)} passwords shown above")
+                
             print("\n" + "="*60)
             print("PASSWORD PROFILING COMPLETED!")
             print("="*60)
